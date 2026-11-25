@@ -1,0 +1,48 @@
+# Build artifacts (C/C++, CMake, ESP-IDF, PlatformIO)
+build/
+cmake-build-*/
+sdkconfig
+sdkconfig.old
+.pio/
+*.o
+*.a
+*.so
+*.elf
+*.bin
+*.map
+*.d
+
+# Unity / Host test binaries
+tests/build/
+*.gcda
+*.gcno
+*.gcov
+
+# Python (FastAPI backend & benchmarking scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Node / React / Vite (Dashboard frontend)
+dashboard/**/node_modules/
+dashboard/**/dist/
+dashboard/**/.vite/
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment & Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
