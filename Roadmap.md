@@ -52,7 +52,7 @@ flowchart LR
 - **Validation Criteria:** Cross-document consistency check passed; all Stage 1 decisions signed off in `STAGE_1_REVIEW.md`.
 - **Definition of Done:** All Stage 1 documents frozen with Stage 2 entry gates clearly defined.
 
-### Stage 2: Integration Layer `[MANDATORY — NEXT]`
+### Stage 2: Integration Layer `[COMPLETE]`
 - **Objective:** Prove ESP-IDF linker wrapping (`--wrap=app_main` and `usos_register_adapter(WRAP_SYMBOLS ...)`) and implement `usos.h`, `USOS_ADAPTER(...)`, PAL skeleton, and driver interception hooks so an existing application compiles and runs with minimal changes.
 - **Tasks:**
   - **Build Proof Gate:** Validate `-Wl,--wrap=app_main` redirection and `usos_register_adapter(WRAP_SYMBOLS ...)` linker propagation to the final ESP-IDF executable (1 wrapped C function + 1 unwrapped function + runtime test).
@@ -65,7 +65,7 @@ flowchart LR
 - **Validation Criteria:** Existing baseline sensor application compiles and runs on Wokwi/ESP32 with zero application logic rewrites (`INT-001`, `INT-003`).
 - **Definition of Done:** Host unit tests for registry/adapter config pass; example firmware builds and boots cleanly.
 
-### Stage 3: Observation Engine `[MANDATORY]`
+### Stage 3: Observation Engine `[MANDATORY — NEXT]`
 - **Objective:** Capture sensor, hardware, FreeRTOS runtime, and USOS self-resource observations with minimal overhead.
 - **Tasks:**
   - Implement Observation Engine event queue and `usos_task`.
