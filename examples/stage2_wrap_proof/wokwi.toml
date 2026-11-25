@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = "build/usos_stage2_wrap_proof.bin"
+elf = "build/usos_stage2_wrap_proof.elf"
