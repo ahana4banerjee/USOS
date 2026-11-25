@@ -3,7 +3,7 @@
 **Lightweight Embedded Reliability Middleware for Adaptive Sensor, Hardware, and Runtime Management**
 
 > **Academic Context & Status:** This is my **B.Tech 4th Year Major Project** in **Electronics and Communication Engineering (ECE)**, structured across two semesters in two phases:
-> - **Phase 4-1 (4th Year, 1st Semester):** USOS Core Reliability Middleware *(Current — Stage 1 Documentation Frozen; Stage 2 Implementation Next)*
+> - **Phase 4-1 (4th Year, 1st Semester):** USOS Core Reliability Middleware *(Current — Stage 2 completed; Stage 3 ongoing)*
 > - **Phase 4-2 (4th Year, 2nd Semester):** Intelligent USOS & Experimental Evaluation
 >
 > *Note: Implementation has not yet begun; all code examples below represent the frozen Stage 1 target design.*
@@ -102,7 +102,7 @@ USOS/
 
 ## Development Status & Roadmap
 
-USOS is currently transitioning from **Phase 4-1, Stage 1 (Architecture and Specification — Frozen)** to **Stage 2 (Integration Layer)**. No firmware or dashboard implementation code has been written yet.
+USOS has completed **Phase 4-1, Stage 1 (Architecture & Specification)** and **Stage 2 (Integration Layer — Linker Wrapping, Static Registry & PAL)**. **Stage 3 (Observation Engine)** is next; the dashboard and higher-level reliability engines are not yet implemented.
 
 - **Phase 4-1 (4th Year, 1st Semester) — USOS Core Reliability Middleware:** Architecture → Integration Layer → Observation Engine → Health & Fault Engine → Recovery Engine → Adaptive Engine → Basic Telemetry & Dashboard.
 - **Phase 4-2 (4th Year, 2nd Semester) — Intelligent USOS:** Advanced Adaptive Management → Advanced Reliability → Advanced Monitoring → Optional Intelligence (TinyML/Fusion) → Advanced Dashboard → Experimental Evaluation (Conventional vs. USOS).
@@ -113,27 +113,54 @@ See [Roadmap.md](file:///d:/Projects/College/USOS/Roadmap.md) for detailed stage
 
 ## Installation and Setup
 
-> **Pending:** Installation and build instructions will be added in **Phase 4-1, Stage 2** once the ESP-IDF CMake middleware skeleton is implemented.
+### 1. Prerequisites
+- **ESP-IDF v5.x** (with CMake, Ninja, and `xtensa-esp32-elf-gcc`)
+- **Wokwi Simulator** VS Code extension (optional, for virtual ESP32 testing) or a physical ESP32 board
+- **Host C Compiler** (`gcc` + `cmake`, optional, for running host unit tests)
+
+### 2. Build & Run ESP-IDF Examples (ESP-IDF PowerShell)
+```powershell
+git clone <repo-url>
+cd USOS\examples\baseline_sensors
+idf.py set-target esp32
+idf.py build
+```
+- **In Wokwi:** Open [examples/baseline_sensors/diagram.json](file:///d:/Projects/College/USOS/examples/baseline_sensors/diagram.json) (or [examples/stage2_wrap_proof/diagram.json](file:///d:/Projects/College/USOS/examples/stage2_wrap_proof/diagram.json)) and click **Play** (`Wokwi: Start Simulator`).
+- **On Physical ESP32:** Run `idf.py -p <PORT> flash monitor`.
+
+### 3. Run Host Unit Tests
+```powershell
+cmake -S tests/unit -B tests/build
+cmake --build tests/build
+ctest --test-dir tests/build --output-on-failure
+```
+
+*(Dashboard setup instructions for FastAPI, PostgreSQL, and React + Vite will be added in Phase 4-1, Stage 7.)*
 
 ---
 
-## Target Usage Example (Proposed Design)
+## Usage Example (Stage 2 Integration)
 
-The following illustrates the **intended** developer workflow once Stage 2 is implemented (exact macro syntax is specified in [API_Specification.md](file:///d:/Projects/College/USOS/docs/design/API_Specification.md)):
+Integrate USOS into an existing ESP-IDF application using `#include <usos.h>`, `USOS_ADAPTER(...)`, and `usos_register_adapter()` in `main/CMakeLists.txt` (see [examples/baseline_sensors](file:///d:/Projects/College/USOS/examples/baseline_sensors/main/main.c)):
 
-```cpp
+```c
 #include <usos.h>
 
 USOS_ADAPTER(
     .board = USOS_BOARD_ESP32,
+    .device_id = "esp32-baseline-01",
     .sensors = {
-        USOS_SENSOR_DHT22("dht_main", .pin = 4, .min_rate_ms = 2000, .max_rate_ms = 10000),
-        USOS_SENSOR_BMP280("bmp_env", .i2c_addr = 0x76, .min_rate_ms = 500, .max_rate_ms = 5000)
+        USOS_SENSOR_DHT22("dht_main", .address_or_pin = 4,
+                          .min_rate_ms = 2000, .max_rate_ms = 10000,
+                          .adaptive_allowed = true, .wrapped_symbol = "DHT_Read"),
+        USOS_SENSOR_BMP280("bmp_env", .bus_port = 0, .address_or_pin = 0x76,
+                           .min_rate_ms = 500, .max_rate_ms = 5000,
+                           .adaptive_allowed = true, .wrapped_symbol = "BMP280_ReadPressure")
     }
 );
 
 void app_main(void) {
-    // Existing application logic remains unchanged
+    // Existing application logic remains unchanged — zero USOS_* calls required
     while (1) {
         DHT_Read(&temperature);
         BMP280_ReadPressure(&pressure);
@@ -146,7 +173,6 @@ void app_main(void) {
 
 ## Documentation
 
-- [Stage 1 Technical Review (STAGE_1_REVIEW.md)](file:///d:/Projects/College/USOS/STAGE_1_REVIEW.md)
 - [Software Requirements Specification (SRS.md)](file:///d:/Projects/College/USOS/SRS.md)
 - [System & Software Architecture (Architecture.md)](file:///d:/Projects/College/USOS/Architecture.md)
 - [Development Roadmap (Roadmap.md)](file:///d:/Projects/College/USOS/Roadmap.md)
