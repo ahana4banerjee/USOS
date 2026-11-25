@@ -1,0 +1,32 @@
+menu "USOS (Universal Sensor Operating System)"
+
+    config USOS_MAX_SENSORS
+        int "Maximum number of statically registered sensors"
+        default 8
+        range 1 32
+        help
+            Fixed compile-time size of the USOS static sensor registry.
+
+    config USOS_OBS_QUEUE_LEN
+        int "Observation event queue capacity"
+        default 32
+        range 8 256
+        help
+            Number of fixed-size observation events buffered between
+            application wrappers and the USOS supervisor task.
+
+    config USOS_TASK_STACK_SIZE
+        int "USOS supervisor task stack size (bytes)"
+        default 4096
+        range 2048 16384
+        help
+            Static stack size allocated for usos_task.
+
+    config USOS_TASK_PRIORITY
+        int "USOS supervisor task FreeRTOS priority"
+        default 3
+        range 1 24
+        help
+            Priority of usos_task (keep below time-critical control tasks).
+
+endmenu
