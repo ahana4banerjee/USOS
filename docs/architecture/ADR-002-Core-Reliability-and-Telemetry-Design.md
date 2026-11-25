@@ -1,6 +1,6 @@
 # ADR-002: Core Reliability, Memory, and Telemetry Design
 
-**Status:** Approved  
+**Status:** Frozen — Stage 1 Baseline  
 **Date:** 2026-11-25  
 **Related Requirements:** `NFR-001`–`NFR-004`, `HLT-001`–`HLT-004`, `REC-001`–`REC-004`, `TEL-001`–`TEL-004`
 

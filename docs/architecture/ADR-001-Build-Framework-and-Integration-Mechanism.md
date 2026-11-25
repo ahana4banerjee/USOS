@@ -1,6 +1,6 @@
 # ADR-001: Build Framework, Startup Initialization, and Driver Integration Mechanism
 
-**Status:** Approved (Framework & Integration) / Recommended (Startup Mechanism)  
+**Status:** Frozen — Stage 1 Baseline (Startup & CMake helper subject to Stage 2 build proof)  
 **Date:** 2026-11-25  
 **Related Requirements:** `SW-003`, `CON-001`, `INT-001`–`INT-005`
 
@@ -55,8 +55,12 @@ To preserve the requirement that developers do **not** call `USOS_Init()` in app
      - `__wrap_app_main()` initializes USOS static queues and `usos_task` (`usos_core_init()`), then immediately invokes `__real_app_main()`.
      - **Driver Initialization Safety:** `usos_task` remains event-driven (blocked on `usos_obs_queue`) and does not access sensor hardware until the application's `__real_app_main()` has initialized peripherals and begun calling sensor drivers.
 
-### 3.2 Recommendation
-Adopt **Pure Static `const` `USOS_ADAPTER` + `-Wl,--wrap=app_main`** as the default ESP-IDF initialization mechanism.
+### 3.2 Approved Decision (Conditional on Stage 2 Build Proof)
+Adopt **Pure Static `const` `USOS_ADAPTER` + `-Wl,--wrap=app_main`** as the ESP-IDF initialization mechanism, **conditionally approved** subject to a minimal ESP-IDF build proof at the start of Stage 2 verifying:
+1. USOS queues and internal structures are initialized *before* `usos_task` starts.
+2. `usos_task` does not assume application peripherals are already initialized.
+3. The original `__real_app_main()` is invoked **exactly once**.
+4. Applications missing the required build/link configuration fail clearly at build/link/startup time rather than silently running without USOS.
 
 ---
 
@@ -74,6 +78,13 @@ USOS explicitly does **not** claim universal transparent interception of arbitra
 
 ---
 
-## 5. Consequences
+## 5. Decision 4: CMake Symbol Registration (`usos_register_adapter`) — **CONCEPT APPROVED**
+
+To propagate `-Wl,--wrap=<symbol>` flags cleanly to the final ESP-IDF application executable, USOS introduces a CMake helper (conceptually `usos_register_adapter(WRAP_SYMBOLS ...)`).
+- **Stage 2 Validation Gate:** Must be proven early in Stage 2 with one wrapped C driver function, one unwrapped driver function, a build log confirming symbol redirection on the final executable, and a runtime test confirming both wrapper and original function execute correctly.
+
+---
+
+## 6. Consequences
 - **Positive:** Eliminates `USOS_Init()` from user code while guaranteeing FreeRTOS scheduler readiness, deterministic static config order, and safe peripheral initialization sequencing.
-- **Trade-off:** Requires CMake integration (`usos_register_adapter()` or `CMakeLists.txt` symbol list) to pass `--wrap` flags to the linker.
+- **Trade-off:** Requires CMake integration (`usos_register_adapter(WRAP_SYMBOLS ...)`) to propagate `--wrap` flags to the final executable target.

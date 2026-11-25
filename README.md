@@ -2,7 +2,11 @@
 
 **Lightweight Embedded Reliability Middleware for Adaptive Sensor, Hardware, and Runtime Management**
 
-> **Project Status:** Phase 4-1, Stage 1 (Architecture & Specification). Implementation has not yet begun; all code examples below represent the target design.
+> **Academic Context & Status:** This is my **B.Tech 4th Year Major Project** in **Electronics and Communication Engineering (ECE)**, structured across two semesters in two phases:
+> - **Phase 4-1 (4th Year, 1st Semester):** USOS Core Reliability Middleware *(Current — Stage 1 Documentation Frozen; Stage 2 Implementation Next)*
+> - **Phase 4-2 (4th Year, 2nd Semester):** Intelligent USOS & Experimental Evaluation
+>
+> *Note: Implementation has not yet begun; all code examples below represent the frozen Stage 1 target design.*
 
 ---
 
@@ -55,7 +59,7 @@ flowchart LR
 | Layer | Technology |
 | :--- | :--- |
 | **Embedded MCU & RTOS** | ESP32, FreeRTOS, C/C++ |
-| **Build & Simulation** | ESP-IDF (recommended) / PlatformIO, CMake, Wokwi |
+| **Build & Simulation** | ESP-IDF (CMake), Wokwi |
 | **Initial Sensors** | DHT22, BMP280, HC-SR04, LDR (ADC), MPU6050 (optional) |
 | **Buses & Interfaces** | I2C, SPI, UART, GPIO, ADC |
 | **Telemetry & Backend** | MQTT, FastAPI, PostgreSQL |
@@ -68,7 +72,7 @@ flowchart LR
 
 - **Hardware (Target):** ESP32 development board, DHT22, BMP280, HC-SR04, LDR + resistor, optional MPU6050.
 - **Simulation:** Wokwi ESP32 simulator for pre-hardware validation.
-- **Software:** ESP-IDF toolchain (pending final selection in [ADR-001](file:///d:/Projects/College/USOS/docs/architecture/ADR-001-Build-Framework-and-Integration-Mechanism.md)), Python 3.10+, PostgreSQL, Node.js (for React/Vite dashboard), and an MQTT broker (e.g., Mosquitto).
+- **Software:** ESP-IDF toolchain with CMake (approved in [ADR-001](file:///d:/Projects/College/USOS/docs/architecture/ADR-001-Build-Framework-and-Integration-Mechanism.md)), Python 3.10+, PostgreSQL, Node.js (for React/Vite dashboard), and an MQTT broker (e.g., Mosquitto).
 
 ---
 
@@ -98,10 +102,10 @@ USOS/
 
 ## Development Status & Roadmap
 
-USOS is currently in **Phase 4-1, Stage 1 (Architecture and Specification)**. No firmware or dashboard implementation code has been written yet.
+USOS is currently transitioning from **Phase 4-1, Stage 1 (Architecture and Specification — Frozen)** to **Stage 2 (Integration Layer)**. No firmware or dashboard implementation code has been written yet.
 
-- **Phase 4-1 — USOS Core Reliability Middleware:** Architecture → Integration Layer → Observation Engine → Health & Fault Engine → Recovery Engine → Adaptive Engine → Basic Telemetry & Dashboard.
-- **Phase 4-2 — Intelligent USOS:** Advanced Adaptive Management → Advanced Reliability → Advanced Monitoring → Optional Intelligence (TinyML/Fusion) → Advanced Dashboard → Experimental Evaluation (Conventional vs. USOS).
+- **Phase 4-1 (4th Year, 1st Semester) — USOS Core Reliability Middleware:** Architecture → Integration Layer → Observation Engine → Health & Fault Engine → Recovery Engine → Adaptive Engine → Basic Telemetry & Dashboard.
+- **Phase 4-2 (4th Year, 2nd Semester) — Intelligent USOS:** Advanced Adaptive Management → Advanced Reliability → Advanced Monitoring → Optional Intelligence (TinyML/Fusion) → Advanced Dashboard → Experimental Evaluation (Conventional vs. USOS).
 
 See [Roadmap.md](file:///d:/Projects/College/USOS/Roadmap.md) for detailed stage deliverables, dependencies, and definitions of done.
 
@@ -109,7 +113,7 @@ See [Roadmap.md](file:///d:/Projects/College/USOS/Roadmap.md) for detailed stage
 
 ## Installation and Setup
 
-> **Pending:** Installation and build instructions will be added in **Phase 4-1, Stage 2** once the build framework (ESP-IDF vs. PlatformIO) is finalized and the initial middleware skeleton is implemented.
+> **Pending:** Installation and build instructions will be added in **Phase 4-1, Stage 2** once the ESP-IDF CMake middleware skeleton is implemented.
 
 ---
 
@@ -142,6 +146,7 @@ void app_main(void) {
 
 ## Documentation
 
+- [Stage 1 Technical Review (STAGE_1_REVIEW.md)](file:///d:/Projects/College/USOS/STAGE_1_REVIEW.md)
 - [Software Requirements Specification (SRS.md)](file:///d:/Projects/College/USOS/SRS.md)
 - [System & Software Architecture (Architecture.md)](file:///d:/Projects/College/USOS/Architecture.md)
 - [Development Roadmap (Roadmap.md)](file:///d:/Projects/College/USOS/Roadmap.md)
@@ -161,4 +166,4 @@ Phase 4-2 explores cross-component fault correlation, sensor degradation trend a
 
 ## License
 
-License selection is **TBD** (pending repository owner decision; MIT or Apache-2.0 recommended for open-source embedded middleware).
+This project is licensed under the **MIT License** (see [STAGE_1_REVIEW.md](file:///d:/Projects/College/USOS/STAGE_1_REVIEW.md); `LICENSE` file to be added at Stage 2 initialization).

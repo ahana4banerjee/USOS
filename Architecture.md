@@ -1,8 +1,8 @@
 # System and Software Architecture Specification
 ## Universal Sensor Operating System (USOS)
 
-**Document Version:** 1.0.0-draft  
-**Status:** Proposed — Pending Review & Approval (Phase 4-1, Stage 1)  
+**Document Version:** 1.0.0  
+**Status:** Frozen — Stage 1 Baseline  
 **Primary Source of Truth:** [USOS Complete Project Design.md](file:///d:/Projects/College/USOS/USOS%20Complete%20Project%20Design.md) | [SRS.md](file:///d:/Projects/College/USOS/SRS.md)
 
 ---
@@ -140,30 +140,32 @@ flowchart LR
 
 ## 6. Integration / Adapter Architecture
 
-### 6.1 Realistic Interception Strategy
-Universal binary interception of arbitrary C/C++ functions is not technically feasible on embedded toolchains. USOS therefore uses a **tiered, build-integrated interception strategy** behind the single `USOS_ADAPTER(...)` boundary:
+### 6.1 Realistic Tiered Interception & Initialization Strategy
+Universal binary interception of arbitrary C/C++ functions is not technically feasible on embedded toolchains. USOS therefore uses a **three-tier, build-integrated interception strategy** behind the single `USOS_ADAPTER(...)` boundary:
 
-1. **Linker Function Wrapping (`-Wl,--wrap=<func>` in ESP-IDF/CMake) [Primary for C drivers]:**
+1. **Tier 1 — GNU Linker `--wrap` (`-Wl,--wrap=<func>` in ESP-IDF/CMake) [Primary for C drivers]:**
    - The application calls `DHT_Read(&temp)` unchanged.
-   - The linker redirects `DHT_Read` to `__wrap_DHT_Read`, which records entry timestamp, invokes `__real_DHT_Read`, records latency/return code/value, notifies the Observation Engine, and enforces adaptive caching/rate policies if configured.
-2. **Driver Wrapper / Shim Binding [For C++ objects or header-only/inline drivers]:**
-   - Where `--wrap` cannot intercept (e.g., C++ methods or `static inline` functions), `USOS_ADAPTER` binds a lightweight wrapper or macro shim at compile time.
-3. **Driver Callbacks / HAL Hooks [For bus-level events]:**
-   - I2C/SPI/UART error counters hook into ESP-IDF HAL return codes or bus wrappers.
+   - The linker redirects `DHT_Read` to `__wrap_DHT_Read`, which records entry timestamp, invokes `__real_DHT_Read`, records latency/return code/value, notifies the Observation Engine, and enforces adaptive caching/interval policies if configured.
+2. **Tier 2 — Explicit Adapter-Bound Wrappers / Shims [For C++ objects or inline/header-only drivers]:**
+   - Where `--wrap` cannot intercept (e.g., C++ methods, `static inline` functions, or closed-source binaries), `USOS_ADAPTER` binds an explicit wrapper or shim at compile time.
+3. **Tier 3 — Hardware / HAL-Level Hooks [For bus-level events]:**
+   - I2C/SPI/UART/ADC/TWDT error counters hook into ESP-IDF HAL return codes or bus wrappers.
+
+**Startup Initialization (`-Wl,--wrap=app_main`):** Rather than relying on GCC `__attribute__((constructor))` (which executes before the FreeRTOS scheduler is active and risks static initialization order issues), `USOS_ADAPTER(...)` expands to a pure compile-time `static const` configuration struct and USOS wraps `app_main` via `-Wl,--wrap=app_main`. `__wrap_app_main()` initializes USOS static queues and `usos_task` after the FreeRTOS scheduler is running, then invokes `__real_app_main()` (see [ADR-001](file:///d:/Projects/College/USOS/docs/architecture/ADR-001-Build-Framework-and-Integration-Mechanism.md)).
 
 ```mermaid
 sequenceDiagram
     participant App as Application Task
     participant Wrap as Integration Wrapper (__wrap_*)
     participant Obs as Observation Engine
-    participant Adp as Adaptive Cache/Policy
+    participant Adp as Adaptive Policy / Cache
     participant Real as Real Driver (__real_*)
 
     App->>Wrap: DHT_Read(&temp)
-    Wrap->>Adp: Check adaptive interval / cache
-    alt Cache valid & rate stepped down
-        Adp-->>Wrap: Return cached reading + status
-    else Sample due
+    Wrap->>Adp: Check policy (Pass-through default vs. Opt-in cache)
+    alt cache_enabled == true AND cache valid AND initial read succeeded
+        Adp-->>Wrap: Return cached reading (original timestamp, marked cached/stale)
+    else Pass-through (default) OR sample interval elapsed
         Wrap->>Obs: Record call start (timestamp)
         Wrap->>Real: __real_DHT_Read(&temp)
         Real-->>Wrap: status + value
@@ -276,16 +278,20 @@ flowchart LR
     IN["Inputs:<br/>• Health State<br/>• Value Rate-of-Change<br/>• Fault History<br/>• CPU / Heap Pressure"] --> CHK{"adaptive_allowed<br/>== true?"}
     CHK -->|"No"| FIX["Keep required_rate_ms"]
     CHK -->|"Yes"| POL["Policy Evaluation"]
-    POL -->|"FAULT / DEGRADED"| UP["Step Up → max_rate (Diagnostic)"]
-    POL -->|"Rapid Signal Change"| UP2["Step Up → High Rate"]
-    POL -->|"HEALTHY + Stable"| DN["Step Down → min_rate (Low Overhead)"]
-    POL -->|"High CPU/Heap Pressure"| CAP["Throttle Non-Critical Sensors"]
-    UP --> CLAMP["Clamp to [min_rate_ms, max_rate_ms]"]
-    UP2 --> CLAMP
-    DN --> CLAMP
+    POL -->|"Suspected FAULT"| DIAG["Diagnostic Sampling Mode<br/>(Fastest: min_rate_ms)"]
+    POL -->|"DEGRADED Health"| FAST["Decrease Interval → min_rate_ms<br/>(Increase Frequency)"]
+    POL -->|"Rapid Signal Change"| FAST2["Decrease Interval → min_rate_ms<br/>(Increase Frequency)"]
+    POL -->|"HEALTHY + Stable"| SLOW["Increase Interval → max_rate_ms<br/>(Decrease Frequency)"]
+    POL -->|"High CPU/Heap Pressure"| CAP["Throttle Non-Critical Sensors<br/>(Toward max_rate_ms)"]
+    DIAG --> CLAMP["Clamp to [min_rate_ms, max_rate_ms]"]
+    FAST --> CLAMP
+    FAST2 --> CLAMP
+    SLOW --> CLAMP
     CAP --> CLAMP
     CLAMP --> LOG["Update Registry + Log Adaptation Reason"]
 ```
+
+- **Interval Semantics:** `min_rate_ms` is the **minimum interval** (fastest sampling), `max_rate_ms` is the **maximum interval** (slowest sampling), and `required_rate_ms` is the fixed interval when `adaptive_allowed == false`.
 
 ---
 
@@ -382,9 +388,10 @@ flowchart LR
 
 ---
 
-## 26. Open Architectural Decisions
+## 26. Frozen Stage 1 Decisions & Stage 2 Validation Gates
 
-1. **Primary Build Framework:** ESP-IDF vs. PlatformIO (evaluated in [ADR-001](file:///d:/Projects/College/USOS/docs/architecture/ADR-001-Build-Framework-and-Integration-Mechanism.md)).
-2. **Exact `USOS_ADAPTER` Macro / Linker-Wrap Mechanics:** Finalize C/C++ macro syntax and CMake `--wrap` generation.
-3. **Adaptive Sampling Control Mode:** Cached-return interception vs. driver-level schedule control when application code has hardcoded delays.
-4. **Telemetry Payload Format:** Pure JSON vs. compact struct + backend decoding.
+All Stage 1 architectural decisions are **frozen** in [ADR-001](file:///d:/Projects/College/USOS/docs/architecture/ADR-001-Build-Framework-and-Integration-Mechanism.md), [ADR-002](file:///d:/Projects/College/USOS/docs/architecture/ADR-002-Core-Reliability-and-Telemetry-Design.md), and [STAGE_1_REVIEW.md](file:///d:/Projects/College/USOS/STAGE_1_REVIEW.md):
+
+1. **Startup Mechanism (`-Wl,--wrap=app_main`) [Conditionally Approved]:** Must be proven in a minimal ESP-IDF build at the start of Stage 2 (ensuring queues/structures init before `usos_task`, no premature peripheral assumptions, single `__real_app_main()` call, and clear failure if unconfigured).
+2. **Adaptive Wrapper Caching [Approved]:** **Pass-through by default** (`cache_enabled == false`); opt-in caching per compatible sensor, retaining original timestamp, marking cached/stale internally, and never returning cached data after a failed initial read unless explicitly permitted.
+3. **CMake Symbol Registration (`usos_register_adapter(WRAP_SYMBOLS ...)`) [Concept Approved]:** Must propagate linker options to the final ESP-IDF executable and be validated in Stage 2 with one wrapped C function and one unwrapped function.

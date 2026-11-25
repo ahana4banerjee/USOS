@@ -1,7 +1,7 @@
 # USOS Test and Experimental Evaluation Strategy
 
-**Document Version:** 1.0.0-draft  
-**Status:** Proposed — Phase 4-1 Stage 1 Baseline  
+**Document Version:** 1.0.0  
+**Status:** Frozen — Stage 1 Baseline  
 **References:** [SRS.md](file:///d:/Projects/College/USOS/SRS.md) (`TST-001`–`TST-004`, `PRF-001`–`PRF-006`) | [Roadmap.md](file:///d:/Projects/College/USOS/Roadmap.md)
 
 ---

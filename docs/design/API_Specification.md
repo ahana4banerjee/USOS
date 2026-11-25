@@ -1,7 +1,7 @@
 # USOS API, Adapter, and Telemetry Specification
 
-**Document Version:** 1.1.0-draft  
-**Status:** Stage 1 Baseline (Updated per Stage 1 Technical Review)  
+**Document Version:** 1.0.0  
+**Status:** Frozen — Stage 1 Baseline  
 **References:** [SRS.md](file:///d:/Projects/College/USOS/SRS.md) (`IF-001`–`IF-005`, `INT-001`–`INT-005`) | [Architecture.md](file:///d:/Projects/College/USOS/Architecture.md)
 
 ---
@@ -26,6 +26,8 @@ typedef struct {
     uint32_t max_rate_ms;          // Maximum sampling interval (slowest sampling)
     uint32_t required_rate_ms;     // Fixed required interval when adaptive_allowed == false
     bool adaptive_allowed;
+    bool cache_enabled;            // Opt-in adaptive caching (default: false / pass-through)
+    bool allow_stale_on_init_fail; // Permit cached return after failed initial read (default: false)
     bool task_restart_safe;        // Opt-in for task-level recovery (default: false)
     int (*reinit_fn)(void);        // Optional driver reinit callback
     int (*hw_reset_fn)(void);      // Optional hardware/power reset callback

@@ -1,8 +1,8 @@
 # Software Requirements Specification (SRS)
 ## Universal Sensor Operating System (USOS)
 
-**Document Version:** 1.0.0-draft  
-**Status:** Proposed — Pending Review & Approval (Phase 4-1, Stage 1)  
+**Document Version:** 1.0.0  
+**Status:** Frozen — Stage 1 Baseline  
 **Primary Source of Truth:** [USOS Complete Project Design.md](file:///d:/Projects/College/USOS/USOS%20Complete%20Project%20Design.md)
 
 ---
@@ -118,7 +118,7 @@ USOS addresses this by centralizing observation, health assessment, fault detect
 | :--- | :--- | :--- | :--- |
 | `SW-001` | **Embedded Language:** C (C11) / C++ (C++17) compatible with ESP-IDF / FreeRTOS toolchains. | `[CORE / MANDATORY]` | Core library in C/C++ with clean C linkage |
 | `SW-002` | **RTOS:** FreeRTOS (ESP-IDF FreeRTOS SMP or standard FreeRTOS). | `[CORE / MANDATORY]` | Execution & synchronization foundation |
-| `SW-003` | **Build Framework:** ESP-IDF (recommended) or PlatformIO; CMake for build orchestration and host tests. | `[CORE / MANDATORY]` | See ADR-001 for framework selection |
+| `SW-003` | **Build Framework:** ESP-IDF with CMake (approved primary framework); CMake for build orchestration and host tests. | `[CORE / MANDATORY]` | See ADR-001 |
 | `SW-004` | **Embedded Testing:** Unity / CMock (or equivalent C/C++ unit test framework) for host-side core testing. | `[CORE / MANDATORY]` | Runs in CI without hardware |
 | `SW-005` | **Telemetry Protocol:** MQTT (over Wi-Fi/TCP). | `[CORE / MANDATORY]` | Device-to-backend transport |
 | `SW-006` | **Backend & Storage:** Python FastAPI + PostgreSQL. | `[CORE / MANDATORY]` | Telemetry ingestion, REST/WS API, history |
@@ -134,7 +134,7 @@ USOS addresses this by centralizing observation, health assessment, fault detect
 | `CON-001` | **No Universal Binary Interception:** USOS cannot transparently intercept arbitrary closed-source or inline C/C++ driver functions without build-system or wrapper integration. |
 | `CON-002` | **No Application Semantic Understanding:** USOS monitors observable system/sensor/runtime properties and shall not attempt to interpret application business logic. |
 | `CON-003` | **Physical Fault Boundary:** Software recovery cannot repair physically damaged hardware; USOS must detect, isolate, and safely report non-recoverable faults. |
-| `CON-004` | **Sampling Safety Bounds:** Adaptive sampling shall never violate developer-specified `min_rate`, `max_rate`, `required_rate`, or `adaptive_allowed` constraints. |
+| `CON-004` | **Sampling Safety Bounds:** Adaptive sampling shall never violate developer-specified `min_rate_ms` (minimum interval, fastest sampling), `max_rate_ms` (maximum interval, slowest sampling), `required_rate_ms` (fixed interval when `adaptive_allowed == false`), or `adaptive_allowed` constraints. |
 | `CON-005` | **No Mandatory ML in Core:** Machine learning / TinyML shall not be required for Phase 4-1 core operation. |
 
 ---
@@ -164,7 +164,7 @@ USOS addresses this by centralizing observation, health assessment, fault detect
 | ID | Requirement | Tag |
 | :--- | :--- | :--- |
 | `INT-001` | A developer shall be able to integrate USOS into an existing application by adding `#include <usos.h>` and `USOS_ADAPTER(...)` without rewriting existing sensor read calls in `main()` or application tasks. | `[CORE / MANDATORY]` |
-| `INT-002` | `USOS_ADAPTER` shall declaratively accept: MCU/board identifier, sensor list, driver binding/integration mode, bus/pin configuration, sampling constraints (`min_rate`, `max_rate`, `required_rate`, `adaptive_allowed`), valid value ranges, and optional reset/reinit callbacks. | `[CORE / MANDATORY]` |
+| `INT-002` | `USOS_ADAPTER` shall declaratively accept: MCU/board identifier, sensor list, driver binding/integration mode, bus/pin configuration, sampling constraints (`min_rate_ms`, `max_rate_ms`, `required_rate_ms`, `adaptive_allowed`), valid value ranges, `task_restart_safe` opt-in flag, and optional reset/reinit callbacks. | `[CORE / MANDATORY]` |
 | `INT-003` | USOS shall NOT require application code to call `USOS_Init()`, `USOS_ReadSensor()`, `USOS_GetHealth()`, `USOS_Update()`, `USOS_RegisterEvent()`, or `USOS_SetSamplingRate()` during normal operation. | `[CORE / MANDATORY]` |
 | `INT-004` | USOS shall guarantee transparent integration for explicitly documented and supported driver/build patterns on the reference ESP32/FreeRTOS platform. | `[CORE / MANDATORY]` |
 | `INT-005` | For drivers that cannot be linker-wrapped, `USOS_ADAPTER` shall support an explicit wrapper or callback binding within the adapter configuration boundary. | `[CORE / MANDATORY]` |
@@ -209,11 +209,12 @@ USOS addresses this by centralizing observation, health assessment, fault detect
 
 | ID | Requirement | Tag |
 | :--- | :--- | :--- |
-| `ADP-001` | USOS shall dynamically adjust internal monitoring frequency and (where adapter-controlled or supported by driver hooks) sensor sampling frequency based on health state, rate of value change, fault history, and resource pressure. | `[CORE / MANDATORY]` |
-| `ADP-002` | Adaptation shall strictly respect per-sensor adapter constraints: if `adaptive_allowed == false` or `required_rate` is fixed, USOS shall not alter that sensor's sampling rate. | `[CORE / MANDATORY]` |
-| `ADP-003` | Under `HEALTHY` and stable signal conditions, USOS shall step down sampling/monitoring toward `min_rate` to conserve CPU, bus, and energy resources. | `[CORE / MANDATORY]` |
-| `ADP-004` | Under rapid signal change, `DEGRADED` health, or suspected `FAULT`, USOS shall step up sampling/monitoring toward `max_rate` for diagnostic visibility, and gradually step back down after recovery stabilizes. | `[CORE / MANDATORY]` |
-| `ADP-005` | Every rate change shall log the old rate, new rate, and adaptation reason for telemetry and evaluation. | `[CORE / MANDATORY]` |
+| `ADP-001` | USOS shall dynamically adjust internal monitoring frequency and (where adapter-controlled or supported by driver hooks) sensor sampling interval based on health state, rate of value change, fault history, and resource pressure. | `[CORE / MANDATORY]` |
+| `ADP-002` | Adaptation shall strictly respect per-sensor adapter constraints: if `adaptive_allowed == false`, USOS shall enforce `required_rate_ms` and shall not alter that sensor's sampling interval. | `[CORE / MANDATORY]` |
+| `ADP-003` | Under `HEALTHY` and stable signal conditions, USOS shall **increase** the sampling/monitoring interval toward `max_rate_ms` (slower sampling) to conserve CPU, bus, and energy resources. | `[CORE / MANDATORY]` |
+| `ADP-004` | Under rapid signal change or `DEGRADED` health, USOS shall **decrease** the sampling/monitoring interval toward `min_rate_ms` (faster sampling); under suspected `FAULT`, USOS shall enter **diagnostic sampling mode** (highest allowed observation frequency bounded by `min_rate_ms`), and gradually increase the interval back toward `max_rate_ms` after recovery stabilizes. | `[CORE / MANDATORY]` |
+| `ADP-005` | Every interval change shall log the old interval, new interval, and adaptation reason for telemetry and evaluation. | `[CORE / MANDATORY]` |
+| `ADP-006` | **Wrapper Caching Policy:** Driver wrappers shall operate in **pass-through mode by default** (`cache_enabled == false`). Opt-in adaptive caching (`cache_enabled == true`) shall only be enabled explicitly for compatible, non-safety-critical sensors, shall retain the original reading timestamp and mark the reading as cached/stale internally, and shall not return cached data after a failed initial read unless explicitly permitted by the adapter. | `[CORE / MANDATORY]` |
 
 ---
 
@@ -315,10 +316,11 @@ Phase 4-1 (Core USOS) is accepted when:
 
 ## Appendix A: Identified Missing Specifications & Technical Risks
 
-During analysis of [USOS Complete Project Design.md](file:///d:/Projects/College/USOS/USOS%20Complete%20Project%20Design.md), the following gaps and risks were identified and must be resolved in Stage 1 before implementation:
+During analysis of [USOS Complete Project Design.md](file:///d:/Projects/College/USOS/USOS%20Complete%20Project%20Design.md) and Stage 1 review, the following items were identified (with resolved items noted):
 
-1. **Build Framework Choice (ESP-IDF vs. PlatformIO):** Both are listed. ESP-IDF provides native CMake, FreeRTOS SMP hooks, linker `--wrap` control, and TWDT APIs; PlatformIO wraps Arduino/ESP-IDF with easier hobbyist library management but less predictable linker-wrapping. *Resolution tracked in ADR-001.*
-2. **Exact `USOS_ADAPTER` Syntax & Interception Mechanism:** How `USOS_ADAPTER(...)` hooks into `DHT_Read(&temperature)` without modifying the call site requires a concrete C/C++ mechanism (e.g., GNU `ld --wrap=DHT_Read`, preprocessor macro redirection, or C++ wrapper types). *Resolution tracked in ADR-001 and API_Specification.md.*
-3. **Adaptive Sampling Control Boundary:** If the application itself calls `DHT_Read()` inside a `vTaskDelay(1000)` loop, USOS cannot slow down the application's loop unless (a) USOS manages the sampling schedule/cache and serves cached values on rapid calls, or (b) the adapter hooks into the task's delay/timer or driver poll. This subtle distinction must be explicitly designed.
-4. **Task Restart Safety in FreeRTOS:** Calling `vTaskDelete` + `xTaskCreate` on an arbitrary task can leak mutexes, heap allocations, or peripheral locks. Task restart must be opt-in per task with cleanup/safe-restart semantics.
-5. **Telemetry Serialization Format & Bandwidth:** JSON over MQTT is human-readable and easy for FastAPI, but verbose on ESP32; payload size and publish cadence need explicit bounds.
+1. **Build Framework Choice [RESOLVED — ADR-001]:** Approved **ESP-IDF with CMake** as the primary framework.
+2. **Startup Initialization Mechanism [EVALUATED — ADR-001]:** GCC `__attribute__((constructor))` was rejected due to static initialization order and early pre-scheduler timing; `-Wl,--wrap=app_main` with pure `const` `USOS_ADAPTER` is recommended.
+3. **Task Restart Safety in FreeRTOS [RESOLVED — ADR-002]:** Approved **opt-in** via `task_restart_safe` (disabled by default) to prevent leaked mutexes or heap.
+4. **Telemetry Serialization Format [RESOLVED — ADR-002]:** Approved **batched JSON over MQTT**.
+5. **Adaptive Sampling Control Boundary [RESOLVED — PASS-THROUGH DEFAULT]:** Wrapper caching is **pass-through by default** (`cache_enabled = false`) to preserve application data freshness; opt-in caching is explicitly configured per compatible sensor (`ADP-006`).
+6. **Stage 2 Build Proofs [CONDITIONAL GATE]:** `-Wl,--wrap=app_main` startup redirection and `usos_register_adapter(WRAP_SYMBOLS ...)` linker propagation to the final ESP-IDF executable must be proven in a minimal ESP-IDF project at the start of Stage 2.

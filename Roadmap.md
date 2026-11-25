@@ -1,16 +1,16 @@
 # USOS Development Roadmap
 
-**Document Version:** 1.0.0-draft  
-**Status:** Proposed — Pending Review & Approval  
+**Document Version:** 1.0.0  
+**Status:** Frozen — Stage 1 Baseline  
 **Primary Source of Truth:** [USOS Complete Project Design.md](file:///d:/Projects/College/USOS/USOS%20Complete%20Project%20Design.md)
 
 ---
 
 ## Overview
 
-USOS development is structured into two sequential phases:
-- **Phase 4-1: USOS Core Reliability Middleware** — `[CORE / MANDATORY]`
-- **Phase 4-2: Intelligent USOS** — Advanced reliability, analytics, experimental evaluation, and `[OPTIONAL]` intelligence.
+USOS is a **B.Tech 4th Year Major Project (ECE)** structured into two sequential phases across two semesters:
+- **Phase 4-1 (4th Year, 1st Semester): USOS Core Reliability Middleware** — `[CORE / MANDATORY]`
+- **Phase 4-2 (4th Year, 2nd Semester): Intelligent USOS** — Advanced reliability, analytics, experimental evaluation, and `[OPTIONAL]` intelligence.
 
 Stages are ordered by technical dependency rather than arbitrary calendar deadlines.
 
@@ -41,21 +41,22 @@ flowchart LR
 
 ## Phase 4-1: USOS Core Reliability Middleware `[CORE / MANDATORY]`
 
-### Stage 1: Architecture and Specification `[IN PROGRESS]`
+### Stage 1: Architecture and Specification `[FROZEN / COMPLETE]`
 - **Objective:** Establish the complete engineering, architectural, and interface baseline before writing implementation code.
 - **Tasks:**
-  - Finalize `SRS.md`, `Architecture.md`, `Roadmap.md`, `API_Specification.md`, `Test_Strategy.md`, and ADRs.
-  - Resolve build framework choice (ESP-IDF vs. PlatformIO) and `USOS_ADAPTER` interception strategy.
-  - Define health, fault, recovery, adaptive, and telemetry data contracts.
-- **Expected Deliverables:** Approved documentation suite in root and `docs/`.
+  - Finalize `SRS.md`, `Architecture.md`, `Roadmap.md`, `API_Specification.md`, `Test_Strategy.md`, `STAGE_1_REVIEW.md`, and ADRs.
+  - Resolve build framework choice (ESP-IDF with CMake) and `USOS_ADAPTER` interception strategy.
+  - Define health, fault, recovery, adaptive (pass-through default), and telemetry data contracts.
+- **Expected Deliverables:** Frozen documentation suite in root and `docs/`.
 - **Dependencies:** None.
-- **Validation Criteria:** Cross-document consistency check passed; all open architectural decisions reviewed by project owner.
-- **Definition of Done:** All Stage 1 documents approved with no unresolved blocking ambiguities.
+- **Validation Criteria:** Cross-document consistency check passed; all Stage 1 decisions signed off in `STAGE_1_REVIEW.md`.
+- **Definition of Done:** All Stage 1 documents frozen with Stage 2 entry gates clearly defined.
 
-### Stage 2: Integration Layer `[MANDATORY]`
-- **Objective:** Implement `usos.h`, `USOS_ADAPTER(...)`, PAL skeleton, and driver interception hooks so an existing application compiles and runs with minimal changes.
+### Stage 2: Integration Layer `[MANDATORY — NEXT]`
+- **Objective:** Prove ESP-IDF linker wrapping (`--wrap=app_main` and `usos_register_adapter(WRAP_SYMBOLS ...)`) and implement `usos.h`, `USOS_ADAPTER(...)`, PAL skeleton, and driver interception hooks so an existing application compiles and runs with minimal changes.
 - **Tasks:**
-  - Implement `usos.h` and `USOS_ADAPTER` declarative configuration structures.
+  - **Build Proof Gate:** Validate `-Wl,--wrap=app_main` redirection and `usos_register_adapter(WRAP_SYMBOLS ...)` linker propagation to the final ESP-IDF executable (1 wrapped C function + 1 unwrapped function + runtime test).
+  - Implement `usos.h` and `USOS_ADAPTER` declarative configuration structures (with `cache_enabled = false` pass-through default).
   - Implement Sensor Management Layer (static registry).
   - Implement FreeRTOS PAL (`usos_pal_rtos`) and ESP32 HAL PAL (`usos_pal_hw`) stubs.
   - Implement linker `--wrap` and/or wrapper shims for DHT22, BMP280, HC-SR04, and LDR.
@@ -107,7 +108,7 @@ flowchart LR
   - Integrate adaptive cache/interval control into Integration wrappers and Observation scheduling.
 - **Expected Deliverables:** `src/adaptive/` module and adaptation trace tests.
 - **Dependencies:** Phase 4-1 Stage 4.
-- **Validation Criteria:** Sampling/monitoring steps down during stable operation, steps up during rapid change/faults, and never violates `adaptive_allowed == false`.
+- **Validation Criteria:** Sampling/monitoring interval increases toward `max_rate_ms` during stable operation, decreases toward `min_rate_ms` during rapid change/degraded health, enters diagnostic sampling mode on suspected fault, and never violates `adaptive_allowed == false` (`required_rate_ms`).
 - **Definition of Done:** Unit tests and Wokwi runs demonstrate measurable transaction reduction in stable state and diagnostic step-up during faults.
 
 ### Stage 7: Basic Telemetry and Dashboard `[MANDATORY]`
