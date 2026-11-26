@@ -36,6 +36,7 @@
 - **Optimizations Applied:**
   - Packed `usos_obs_event_t` from `28 B` → `20 B`, set default `USOS_OBS_QUEUE_LEN=16` (`896 B` → `320 B` queue storage), removed unused `USOS_BUS_NONE` slot (`-32 B`), replaced `vsnprintf` + `buf[160]` in `usos_pal_log()` with `vprintf`, and replaced `libm` `isnan`/`isinf`/`fabsf` with inline IEEE-754 checks.
   - **Measured Result:** Flash overhead vs. `conventional_baseline` dropped from **`+17,256 B` → `+4,340 B`** (`libc.a` delta dropped from `+13,447 B` to `+138 B`), and `usos_baseline_sensors.bin` shrank from `0x2c3a0` to `0x29130` (`-12.6 KB`).
+  - **Live Wokwi Verification ([Stage3_Benchmark_Report.md](file:///d:/Projects/College/USOS/docs/testing/Stage3_Benchmark_Report.md)):** USOS reported `tasks=6`, `cpu=0.4%`, `heap=296240B` (exact `-6,544 B` vs. `302784B` conventional), `ram=7411B` (exact match to `libUSOS.a`), `drops=0`, and `hwm=2540B` (`62%` stack margin).
 
 ---
 
