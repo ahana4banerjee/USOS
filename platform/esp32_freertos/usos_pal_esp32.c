@@ -11,6 +11,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifndef CONFIG_USOS_TASK_STACK_SIZE
 #define CONFIG_USOS_TASK_STACK_SIZE 4096
@@ -93,6 +94,93 @@ uint32_t usos_pal_heap_free(void)
 uint32_t usos_pal_heap_min(void)
 {
     return esp_get_minimum_free_heap_size();
+}
+
+uint32_t usos_pal_obs_queue_depth(void)
+{
+    if (s_obs_queue == NULL) {
+        return 0U;
+    }
+    return (uint32_t)uxQueueMessagesWaiting(s_obs_queue);
+}
+
+uint32_t usos_pal_get_own_stack_hwm(void)
+{
+    return (uint32_t)uxTaskGetStackHighWaterMark(NULL) * (uint32_t)sizeof(StackType_t);
+}
+
+#if configUSE_TRACE_FACILITY
+static TaskStatus_t s_task_status_buf[USOS_MAX_TRACKED_TASKS];
+
+static uint8_t map_task_state(eTaskState st)
+{
+    switch (st) {
+        case eRunning:   return 0U;
+        case eReady:     return 1U;
+        case eBlocked:   return 2U;
+        case eSuspended: return 3U;
+        case eDeleted:
+        default:         return 4U;
+    }
+}
+#endif
+
+int usos_pal_get_runtime_stats(usos_runtime_stats_t *out_stats)
+{
+    if (out_stats == NULL) {
+        return -1;
+    }
+
+    out_stats->free_heap_bytes = esp_get_free_heap_size();
+    out_stats->min_free_heap_bytes = esp_get_minimum_free_heap_size();
+    out_stats->task_count = (uint16_t)uxTaskGetNumberOfTasks();
+    out_stats->tracked_count = 0U;
+    out_stats->total_cpu_percent = 255U;
+
+#if configUSE_TRACE_FACILITY
+    uint32_t total_runtime = 0U;
+    UBaseType_t n = uxTaskGetSystemState(s_task_status_buf, USOS_MAX_TRACKED_TASKS,
+                                         &total_runtime);
+    uint8_t idle_cpu = 0U;
+    for (UBaseType_t i = 0U; i < n && i < USOS_MAX_TRACKED_TASKS; ++i) {
+        usos_task_info_t *dst = &out_stats->tasks[out_stats->tracked_count++];
+        strncpy(dst->name, s_task_status_buf[i].pcTaskName, sizeof(dst->name) - 1U);
+        dst->name[sizeof(dst->name) - 1U] = '\0';
+        dst->state = map_task_state(s_task_status_buf[i].eCurrentState);
+        dst->stack_hwm_bytes =
+            (uint32_t)s_task_status_buf[i].usStackHighWaterMark * (uint32_t)sizeof(StackType_t);
+
+#if configGENERATE_RUN_TIME_STATS
+        if (total_runtime > 0U) {
+            uint32_t pct = (uint32_t)(((uint64_t)s_task_status_buf[i].ulRunTimeCounter * 100ULL) /
+                                      (uint64_t)total_runtime);
+            dst->cpu_percent = (pct > 100U) ? 100U : (uint8_t)pct;
+            if (strncmp(dst->name, "IDLE", 4) == 0) {
+                idle_cpu = (uint8_t)(idle_cpu + dst->cpu_percent);
+            }
+        } else {
+            dst->cpu_percent = 255U;
+        }
+#else
+        dst->cpu_percent = 255U;
+#endif
+    }
+
+#if configGENERATE_RUN_TIME_STATS
+    if (total_runtime > 0U) {
+        uint8_t avg_idle = (idle_cpu > 100U) ? 100U : idle_cpu;
+        out_stats->total_cpu_percent = (uint8_t)(100U - avg_idle);
+    }
+#endif
+#endif
+
+    return 0;
+}
+
+uint32_t usos_pal_static_ram_bytes(void)
+{
+    return (uint32_t)(sizeof(s_obs_queue_cb) + sizeof(s_obs_queue_storage) +
+                      sizeof(s_usos_task_tcb) + sizeof(s_usos_task_stack));
 }
 
 void usos_pal_log(const char *tag, const char *fmt, ...)

@@ -1,5 +1,6 @@
 #include "usos_types.h"
 #include "usos_registry.h"
+#include "usos_resource_monitor.h"
 #include "usos_pal_rtos.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -41,7 +42,9 @@ int usos_wrap_dispatch(const char *symbol_or_id, usos_real_read_fn_t real_fn,
                 .value = cached,
                 .from_cache = is_stale
             };
-            usos_pal_obs_queue_send(&ev);
+            if (!usos_pal_obs_queue_send(&ev)) {
+                usos_resource_monitor_record_drop();
+            }
             return 0;
         }
     }
@@ -62,7 +65,9 @@ int usos_wrap_dispatch(const char *symbol_or_id, usos_real_read_fn_t real_fn,
             .value = *out_val,
             .from_cache = false
         };
-        usos_pal_obs_queue_send(&ev);
+        if (!usos_pal_obs_queue_send(&ev)) {
+            usos_resource_monitor_record_drop();
+        }
     }
 
     return rc;

@@ -1,5 +1,6 @@
 #include "usos_types.h"
 #include "usos_registry.h"
+#include "usos_observation.h"
 #include "usos_pal_rtos.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -16,10 +17,10 @@ static void usos_supervisor_task(void *arg)
 
     /* Event-driven: waits on observation queue; never touches peripherals at boot */
     for (;;) {
-        if (usos_pal_obs_queue_recv(&ev, 1000U)) {
-            /* Stage 3+ will route events into Observation, Health, Fault, Recovery */
-            (void)ev;
+        if (usos_pal_obs_queue_recv(&ev, 200U)) {
+            usos_observation_process_event(&ev);
         }
+        usos_observation_tick(usos_pal_tick_ms());
     }
 }
 
@@ -35,6 +36,7 @@ void __wrap_app_main(void)
             usos_pal_log("USOS", "FATAL: Invalid USOS_ADAPTER configuration");
             return;
         }
+        usos_observation_init();
         if (usos_pal_rtos_init() != 0) {
             usos_pal_log("USOS", "FATAL: RTOS PAL init failed");
             return;
