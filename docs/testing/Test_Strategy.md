@@ -28,6 +28,15 @@
 
 ---
 
+## 2.1 Stage 3 Observation & Overhead Validation Procedures
+
+1. **Kconfig Propagation Check:** Inspect `libUSOS.a` `.bss` symbol sizes (`s_task_status_buf`, `s_obs_queue_storage`) via `esp_idf_size --archive_details libUSOS.a` to confirm `sdkconfig.h` values are applied.
+2. **Queue Burst & Drop Check:** Fill `usos_obs_queue` to capacity, trigger overflow drops, drain before `usos_observation_tick()`, and verify `obs_queue_interval_peak`, `obs_queue_peak`, and `obs_queue_drops`.
+3. **Dual-Core CPU Permille Check:** Verify `total_cpu_permille` (`0.1%` resolution) normalizes across `portNUM_PROCESSORS` and handles counter wrap-around.
+4. **Conventional vs. USOS Size Diff:** Run `esp_idf_size --archives --diff` between `examples/conventional_baseline` and `examples/baseline_sensors`.
+
+---
+
 ## 3. Phase 4-2 Stage 6: Experimental Evaluation Methodology
 
 To answer USOS's central engineering question quantitatively, an identical 4-sensor ESP32 application will be benchmarked in two configurations:

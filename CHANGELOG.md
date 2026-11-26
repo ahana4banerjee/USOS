@@ -26,7 +26,16 @@
 ### How It Works & Verification Results
 - **Event Flow:** Application wrapper → non-blocking `usos_pal_obs_queue_send()` (recording a drop in `usos_resource_monitor` if full) → `usos_supervisor_task` pops event → `usos_observation_process_event()` updates Sensor + Hardware monitors → periodic `usos_observation_tick()` samples Runtime + Resource monitors and logs `[USOS_OBS] ...`.
 - **Host Unit Tests:** Compiled with `-Wall -Wextra -Werror` and passed all Stage 2 and Stage 3 tests (`test_sensor_monitor_metrics_and_anomalies`, `test_hw_monitor_bus_errors_and_recovery`, `test_runtime_and_resource_monitors`).
-- **ESP-IDF Build:** `examples/baseline_sensors` built cleanly (`0x2c3a0` bytes, 83% app partition free) with `sdkconfig.defaults` active—ready to observe live `[USOS_OBS]` metrics in Wokwi.
+- **ESP-IDF Build:** `examples/baseline_sensors` built cleanly (`0x2c3a0` bytes, 83% app partition free) with `sdkconfig.defaults` applied—ready to observe live `[USOS_OBS]` metrics in Wokwi.
+
+### Stage 3 Hardening & Optimization Pass (2026-11-26)
+- **Bug Fixes:**
+  - Included `sdkconfig.h` in `include/usos_types.h` (for `ESP_PLATFORM`) so `CONFIG_USOS_*` Kconfig values actually apply (`s_task_status_buf` verified at `864 B` for 24 tasks instead of falling back to 12).
+  - Fixed dual-core ESP32 CPU % calculation in `usos_pal_esp32.c` using delta counters normalized by `IDLE` core count at `0.1%` (`permille`) resolution.
+  - Fixed `obs_queue_peak` sampling by recording interval peak inside `usos_pal_obs_queue_send()` before draining, and added exact `7,411 B` self-RAM accounting across registry, observation, startup, and PAL.
+- **Optimizations Applied:**
+  - Packed `usos_obs_event_t` from `28 B` → `20 B`, set default `USOS_OBS_QUEUE_LEN=16` (`896 B` → `320 B` queue storage), removed unused `USOS_BUS_NONE` slot (`-32 B`), replaced `vsnprintf` + `buf[160]` in `usos_pal_log()` with `vprintf`, and replaced `libm` `isnan`/`isinf`/`fabsf` with inline IEEE-754 checks.
+  - **Measured Result:** Flash overhead vs. `conventional_baseline` dropped from **`+17,256 B` → `+4,340 B`** (`libc.a` delta dropped from `+13,447 B` to `+138 B`), and `usos_baseline_sensors.bin` shrank from `0x2c3a0` to `0x29130` (`-12.6 KB`).
 
 ---
 

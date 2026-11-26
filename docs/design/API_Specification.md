@@ -45,14 +45,16 @@ typedef struct {
 
 ## 2. Internal Core Interfaces (Platform-Independent)
 
-### 2.1 Observation Event (`usos_obs_event_t`)
+### 2.1 Observation Event (`usos_obs_event_t` — 20 Bytes Packed)
 Fixed-size struct pushed non-blockingly (`O(1)`) from wrappers/monitors into `usos_obs_queue`:
 - `uint32_t timestamp_ms`
-- `uint8_t component_id`
-- `usos_obs_domain_t domain` (`SENSOR`, `HARDWARE`, `RUNTIME`, `RESOURCE`)
 - `int32_t status_code` (`0` = OK, negative = error/timeout)
 - `uint32_t latency_us`
 - `float value` (for sensor readings)
+- `uint8_t component_id`
+- `uint8_t domain` (`usos_obs_domain_t`: `SENSOR`, `HARDWARE`, `RUNTIME`, `RESOURCE`)
+- `uint8_t flags` (Bit 0: `USOS_OBS_FLAG_FROM_CACHE`)
+- `uint8_t reserved`
 
 ### 2.2 Platform Abstraction Layer (`platform/`)
 - `usos_pal_rtos.h`: `usos_pal_tick_ms()`, `usos_pal_heap_free()`, `usos_pal_heap_min()`, `usos_pal_task_snapshot()`, `usos_pal_queue_send_isr_safe()`.
