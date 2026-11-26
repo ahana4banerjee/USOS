@@ -52,6 +52,27 @@ uint32_t usos_pal_heap_free(void);
 uint32_t usos_pal_heap_min(void);
 
 /**
+ * @brief Query current observation queue depth (number of queued items).
+ */
+uint32_t usos_pal_obs_queue_depth(void);
+
+/**
+ * @brief Query calling task's stack high-water mark in bytes.
+ */
+uint32_t usos_pal_get_own_stack_hwm(void);
+
+/**
+ * @brief Populate FreeRTOS task, CPU %, and heap snapshot.
+ * @return 0 on success, negative on error.
+ */
+int usos_pal_get_runtime_stats(usos_runtime_stats_t *out_stats);
+
+/**
+ * @brief Return static RAM bytes owned by the PAL (queues + task stack/TCB).
+ */
+uint32_t usos_pal_static_ram_bytes(void);
+
+/**
  * @brief Lightweight diagnostic logging hook.
  */
 void usos_pal_log(const char *tag, const char *fmt, ...);

@@ -24,6 +24,32 @@ extern "C" {
 #endif
 #endif
 
+#ifndef USOS_OBS_PERIOD_MS
+#ifdef CONFIG_USOS_OBS_PERIOD_MS
+#define USOS_OBS_PERIOD_MS CONFIG_USOS_OBS_PERIOD_MS
+#else
+#define USOS_OBS_PERIOD_MS 1000
+#endif
+#endif
+
+#ifndef USOS_MAX_TRACKED_TASKS
+#ifdef CONFIG_USOS_MAX_TRACKED_TASKS
+#define USOS_MAX_TRACKED_TASKS CONFIG_USOS_MAX_TRACKED_TASKS
+#else
+#define USOS_MAX_TRACKED_TASKS 12
+#endif
+#endif
+
+#ifndef USOS_OBS_LOG_SUMMARY
+#ifdef CONFIG_USOS_OBS_LOG_SUMMARY
+#define USOS_OBS_LOG_SUMMARY CONFIG_USOS_OBS_LOG_SUMMARY
+#else
+#define USOS_OBS_LOG_SUMMARY 1
+#endif
+#endif
+
+#define USOS_BUS_COUNT 6
+
 typedef enum {
     USOS_BOARD_UNKNOWN = 0,
     USOS_BOARD_ESP32
@@ -123,6 +149,80 @@ typedef struct {
     bool has_valid_init_read;
     bool is_stale;
 } usos_sensor_entry_t;
+
+/**
+ * @brief Per-sensor observation statistics (Stage 3).
+ */
+typedef struct {
+    uint32_t total_reads;
+    uint32_t success_reads;
+    uint32_t error_reads;
+    uint32_t timeout_count;
+    uint32_t consecutive_errors;
+    uint32_t missed_samples;
+    uint32_t out_of_range_count;
+    uint32_t nan_count;
+    uint32_t stuck_count;
+    uint32_t min_latency_us;
+    uint32_t max_latency_us;
+    uint32_t avg_latency_us;
+    float last_value;
+    float prev_value;
+    float rate_of_change;          /**< |dx/dt| in units per second */
+    uint32_t last_read_ms;
+    bool has_reading;
+} usos_sensor_stats_t;
+
+/**
+ * @brief Per-bus hardware observation statistics (Stage 3).
+ */
+typedef struct {
+    usos_bus_type_t bus;
+    uint32_t tx_count;
+    uint32_t error_count;
+    uint32_t nack_or_timeout_count;
+    uint32_t consecutive_errors;
+    int32_t last_error_code;
+    uint32_t last_error_ms;
+    bool available;
+} usos_hw_bus_stats_t;
+
+/**
+ * @brief FreeRTOS task snapshot entry (Stage 3).
+ */
+typedef struct {
+    char name[16];
+    uint8_t state;                 /**< 0=Running,1=Ready,2=Blocked,3=Suspended,4=Deleted */
+    uint32_t stack_hwm_bytes;
+    uint8_t cpu_percent;
+} usos_task_info_t;
+
+/**
+ * @brief System-wide FreeRTOS runtime snapshot (Stage 3).
+ */
+typedef struct {
+    uint32_t timestamp_ms;
+    uint16_t task_count;
+    uint8_t tracked_count;
+    uint8_t total_cpu_percent;     /**< 0..100; 255 if runtime stats disabled */
+    uint32_t free_heap_bytes;
+    uint32_t min_free_heap_bytes;
+    int32_t wdt_status;
+    usos_task_info_t tasks[USOS_MAX_TRACKED_TASKS];
+} usos_runtime_stats_t;
+
+/**
+ * @brief USOS middleware self-resource overhead metrics (FR-005, Stage 3).
+ */
+typedef struct {
+    uint32_t static_ram_bytes;
+    uint32_t obs_queue_depth;
+    uint32_t obs_queue_peak;
+    uint32_t obs_queue_drops;
+    uint32_t usos_task_stack_hwm_bytes;
+    uint8_t usos_task_cpu_percent;
+    uint8_t active_sensor_count;
+} usos_resource_stats_t;
 
 #ifdef __cplusplus
 }

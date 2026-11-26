@@ -6,6 +6,11 @@ if(DEFINED ESP_PLATFORM AND ESP_PLATFORM)
             "src/integration/usos_startup.c"
             "src/integration/usos_wrappers.c"
             "src/registry/usos_registry.c"
+            "src/observation/usos_observation.c"
+            "src/observation/usos_sensor_monitor.c"
+            "src/observation/usos_hw_monitor.c"
+            "src/observation/usos_runtime_monitor.c"
+            "src/observation/usos_resource_monitor.c"
             "platform/esp32_freertos/usos_pal_esp32.c"
         INCLUDE_DIRS
             "include"
@@ -24,6 +29,11 @@ else()
     add_library(usos_core STATIC
         src/registry/usos_registry.c
         src/integration/usos_wrappers.c
+        src/observation/usos_observation.c
+        src/observation/usos_sensor_monitor.c
+        src/observation/usos_hw_monitor.c
+        src/observation/usos_runtime_monitor.c
+        src/observation/usos_resource_monitor.c
         platform/mock/usos_pal_mock.c
     )
     target_include_directories(usos_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

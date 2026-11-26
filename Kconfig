@@ -29,4 +29,24 @@ menu "USOS (Universal Sensor Operating System)"
         help
             Priority of usos_task (keep below time-critical control tasks).
 
+    config USOS_OBS_PERIOD_MS
+        int "Periodic runtime/resource observation interval (ms)"
+        default 1000
+        range 100 60000
+        help
+            How often usos_task samples runtime, heap, and resource metrics.
+
+    config USOS_MAX_TRACKED_TASKS
+        int "Maximum FreeRTOS tasks tracked in runtime snapshot"
+        default 12
+        range 2 32
+        help
+            Static array capacity for FreeRTOS task state/stack snapshots.
+
+    config USOS_OBS_LOG_SUMMARY
+        bool "Log periodic observation summary to console"
+        default y
+        help
+            Enable compact periodic observation logs for diagnostics/demos.
+
 endmenu
