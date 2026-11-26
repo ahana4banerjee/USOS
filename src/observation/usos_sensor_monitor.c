@@ -1,11 +1,21 @@
 #include "usos_sensor_monitor.h"
 #include "usos_registry.h"
-#include <math.h>
 #include <stddef.h>
 #include <string.h>
 
 #define USOS_TIMEOUT_STATUS_CODE (-2)
 #define USOS_STUCK_EPSILON       (1e-5f)
+
+static inline float usos_absf(float x)
+{
+    return (x < 0.0f) ? -x : x;
+}
+
+static inline bool usos_is_invalid_float(float x)
+{
+    /* IEEE-754: NaN != NaN; Inf - Inf is NaN */
+    return (x != x) || ((x - x) != 0.0f);
+}
 
 static usos_sensor_stats_t s_sensor_stats[USOS_MAX_SENSORS];
 
@@ -36,7 +46,7 @@ static void update_value_metrics(usos_sensor_stats_t *st,
                                  const usos_sensor_config_t *cfg,
                                  const usos_obs_event_t *ev)
 {
-    if (isnan(ev->value) || isinf(ev->value)) {
+    if (usos_is_invalid_float(ev->value)) {
         st->nan_count++;
         return;
     }
@@ -47,10 +57,11 @@ static void update_value_metrics(usos_sensor_stats_t *st,
         }
     }
 
+    bool from_cache = (ev->flags & USOS_OBS_FLAG_FROM_CACHE) != 0U;
     if (st->has_reading) {
-        if (!ev->from_cache && fabsf(ev->value - st->last_value) <= USOS_STUCK_EPSILON) {
+        if (!from_cache && usos_absf(ev->value - st->last_value) <= USOS_STUCK_EPSILON) {
             st->stuck_count++;
-        } else if (!ev->from_cache) {
+        } else if (!from_cache) {
             st->stuck_count = 0U;
         }
 
@@ -58,7 +69,7 @@ static void update_value_metrics(usos_sensor_stats_t *st,
                              ? (ev->timestamp_ms - st->last_read_ms)
                              : 0U;
         if (dt_ms > 0U) {
-            st->rate_of_change = fabsf(ev->value - st->last_value) * 1000.0f / (float)dt_ms;
+            st->rate_of_change = usos_absf(ev->value - st->last_value) * 1000.0f / (float)dt_ms;
         }
         st->prev_value = st->last_value;
     }
@@ -78,7 +89,7 @@ void usos_sensor_monitor_process(const usos_obs_event_t *ev)
     const usos_sensor_config_t *cfg = (entry != NULL) ? entry->config : NULL;
 
     st->total_reads++;
-    if (!ev->from_cache) {
+    if ((ev->flags & USOS_OBS_FLAG_FROM_CACHE) == 0U) {
         update_latency_stats(st, ev->latency_us);
     }
 

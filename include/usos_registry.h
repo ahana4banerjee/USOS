@@ -51,6 +51,11 @@ bool usos_registry_should_use_cache(uint8_t index, uint32_t now_ms,
                                     float *out_value, uint32_t *out_orig_ts_ms,
                                     bool *out_is_stale);
 
+/**
+ * @brief Return static RAM bytes owned by the sensor registry.
+ */
+uint32_t usos_registry_static_ram(void);
+
 #ifdef __cplusplus
 }
 #endif

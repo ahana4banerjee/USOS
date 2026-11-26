@@ -9,7 +9,7 @@ menu "USOS (Universal Sensor Operating System)"
 
     config USOS_OBS_QUEUE_LEN
         int "Observation event queue capacity"
-        default 32
+        default 16
         range 8 256
         help
             Number of fixed-size observation events buffered between
@@ -38,10 +38,22 @@ menu "USOS (Universal Sensor Operating System)"
 
     config USOS_MAX_TRACKED_TASKS
         int "Maximum FreeRTOS tasks tracked in runtime snapshot"
-        default 12
+        default 24
         range 2 32
         help
             Static array capacity for FreeRTOS task state/stack snapshots.
+
+    config USOS_ENABLE_RUNTIME_MONITOR
+        bool "Enable FreeRTOS runtime & task monitoring"
+        default y
+        help
+            Collects FreeRTOS task states, CPU utilization, heap, and stack HWM.
+
+    config USOS_ENABLE_RESOURCE_MONITOR
+        bool "Enable USOS self-resource overhead monitoring"
+        default y
+        help
+            Tracks USOS static RAM, queue peaks/drops, and supervisor stack HWM.
 
     config USOS_OBS_LOG_SUMMARY
         bool "Log periodic observation summary to console"

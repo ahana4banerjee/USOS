@@ -142,3 +142,8 @@ bool usos_registry_should_use_cache(uint8_t index, uint32_t now_ms,
 
     return false;
 }
+
+uint32_t usos_registry_static_ram(void)
+{
+    return (uint32_t)(sizeof(s_registry) + sizeof(s_sensor_count));
+}

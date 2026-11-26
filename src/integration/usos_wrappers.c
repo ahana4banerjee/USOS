@@ -35,12 +35,13 @@ int usos_wrap_dispatch(const char *symbol_or_id, usos_real_read_fn_t real_fn,
             *out_val = cached;
             usos_obs_event_t ev = {
                 .timestamp_ms = orig_ts,
-                .component_id = (uint8_t)idx,
-                .domain = USOS_OBS_SENSOR,
                 .status_code = 0,
                 .latency_us = 0U,
                 .value = cached,
-                .from_cache = is_stale
+                .component_id = (uint8_t)idx,
+                .domain = (uint8_t)USOS_OBS_SENSOR,
+                .flags = is_stale ? USOS_OBS_FLAG_FROM_CACHE : 0U,
+                .reserved = 0U
             };
             if (!usos_pal_obs_queue_send(&ev)) {
                 usos_resource_monitor_record_drop();
@@ -58,12 +59,13 @@ int usos_wrap_dispatch(const char *symbol_or_id, usos_real_read_fn_t real_fn,
         usos_registry_update_sample((uint8_t)idx, *out_val, rc, done_ms);
         usos_obs_event_t ev = {
             .timestamp_ms = done_ms,
-            .component_id = (uint8_t)idx,
-            .domain = USOS_OBS_SENSOR,
             .status_code = rc,
             .latency_us = latency_us,
             .value = *out_val,
-            .from_cache = false
+            .component_id = (uint8_t)idx,
+            .domain = (uint8_t)USOS_OBS_SENSOR,
+            .flags = 0U,
+            .reserved = 0U
         };
         if (!usos_pal_obs_queue_send(&ev)) {
             usos_resource_monitor_record_drop();

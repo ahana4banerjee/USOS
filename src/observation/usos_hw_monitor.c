@@ -2,24 +2,25 @@
 #include <stddef.h>
 #include <string.h>
 
-static usos_hw_bus_stats_t s_bus_stats[USOS_BUS_COUNT];
+/* Indexed by ((uint8_t)bus - 1U) across active buses (GPIO..ADC), omitting USOS_BUS_NONE */
+static usos_hw_bus_stats_t s_bus_stats[USOS_ACTIVE_BUS_COUNT];
 
 void usos_hw_monitor_init(void)
 {
     memset(s_bus_stats, 0, sizeof(s_bus_stats));
-    for (uint8_t i = 0U; i < USOS_BUS_COUNT; ++i) {
-        s_bus_stats[i].bus = (usos_bus_type_t)i;
+    for (uint8_t i = 0U; i < USOS_ACTIVE_BUS_COUNT; ++i) {
+        s_bus_stats[i].bus = (usos_bus_type_t)(i + 1U);
         s_bus_stats[i].available = true;
     }
 }
 
 void usos_hw_monitor_record_tx(usos_bus_type_t bus, int32_t status_code, uint32_t now_ms)
 {
-    if ((uint8_t)bus >= USOS_BUS_COUNT || bus == USOS_BUS_NONE) {
+    if (bus == USOS_BUS_NONE || (uint8_t)bus > USOS_ACTIVE_BUS_COUNT) {
         return;
     }
 
-    usos_hw_bus_stats_t *st = &s_bus_stats[(uint8_t)bus];
+    usos_hw_bus_stats_t *st = &s_bus_stats[(uint8_t)bus - 1U];
     st->tx_count++;
 
     if (status_code == 0) {
@@ -50,10 +51,10 @@ void usos_hw_monitor_process(const usos_obs_event_t *ev)
 
 const usos_hw_bus_stats_t *usos_hw_monitor_get(usos_bus_type_t bus)
 {
-    if ((uint8_t)bus >= USOS_BUS_COUNT) {
+    if (bus == USOS_BUS_NONE || (uint8_t)bus > USOS_ACTIVE_BUS_COUNT) {
         return NULL;
     }
-    return &s_bus_stats[(uint8_t)bus];
+    return &s_bus_stats[(uint8_t)bus - 1U];
 }
 
 uint32_t usos_hw_monitor_static_ram(void)

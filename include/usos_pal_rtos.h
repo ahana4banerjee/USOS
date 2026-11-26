@@ -57,6 +57,11 @@ uint32_t usos_pal_heap_min(void);
 uint32_t usos_pal_obs_queue_depth(void);
 
 /**
+ * @brief Read and reset the observation queue peak depth for the last interval.
+ */
+uint32_t usos_pal_obs_queue_peak_and_reset(void);
+
+/**
  * @brief Query calling task's stack high-water mark in bytes.
  */
 uint32_t usos_pal_get_own_stack_hwm(void);

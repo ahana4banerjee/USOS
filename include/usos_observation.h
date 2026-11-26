@@ -30,6 +30,7 @@ const usos_sensor_stats_t *usos_observation_get_sensor(uint8_t sensor_index);
 const usos_hw_bus_stats_t *usos_observation_get_bus(usos_bus_type_t bus);
 const usos_runtime_stats_t *usos_observation_get_runtime(void);
 const usos_resource_stats_t *usos_observation_get_resource(void);
+uint32_t usos_observation_static_ram(void);
 
 #ifdef __cplusplus
 }

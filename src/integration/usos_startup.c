@@ -10,6 +10,11 @@ extern void __real_app_main(void);
 
 static bool s_usos_initialized = false;
 
+uint32_t usos_startup_static_ram(void)
+{
+    return (uint32_t)sizeof(s_usos_initialized);
+}
+
 static void usos_supervisor_task(void *arg)
 {
     (void)arg;

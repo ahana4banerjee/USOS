@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#if defined(ESP_PLATFORM) && !defined(USOS_HOST_BUILD)
+#include "sdkconfig.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,7 +24,7 @@ extern "C" {
 #ifdef CONFIG_USOS_OBS_QUEUE_LEN
 #define USOS_OBS_QUEUE_LEN CONFIG_USOS_OBS_QUEUE_LEN
 #else
-#define USOS_OBS_QUEUE_LEN 32
+#define USOS_OBS_QUEUE_LEN 16
 #endif
 #endif
 
@@ -36,7 +40,23 @@ extern "C" {
 #ifdef CONFIG_USOS_MAX_TRACKED_TASKS
 #define USOS_MAX_TRACKED_TASKS CONFIG_USOS_MAX_TRACKED_TASKS
 #else
-#define USOS_MAX_TRACKED_TASKS 12
+#define USOS_MAX_TRACKED_TASKS 24
+#endif
+#endif
+
+#ifndef USOS_ENABLE_RUNTIME_MONITOR
+#ifdef CONFIG_USOS_ENABLE_RUNTIME_MONITOR
+#define USOS_ENABLE_RUNTIME_MONITOR CONFIG_USOS_ENABLE_RUNTIME_MONITOR
+#else
+#define USOS_ENABLE_RUNTIME_MONITOR 1
+#endif
+#endif
+
+#ifndef USOS_ENABLE_RESOURCE_MONITOR
+#ifdef CONFIG_USOS_ENABLE_RESOURCE_MONITOR
+#define USOS_ENABLE_RESOURCE_MONITOR CONFIG_USOS_ENABLE_RESOURCE_MONITOR
+#else
+#define USOS_ENABLE_RESOURCE_MONITOR 1
 #endif
 #endif
 
@@ -48,7 +68,7 @@ extern "C" {
 #endif
 #endif
 
-#define USOS_BUS_COUNT 6
+#define USOS_ACTIVE_BUS_COUNT 5
 
 typedef enum {
     USOS_BOARD_UNKNOWN = 0,
@@ -120,17 +140,20 @@ typedef struct {
     usos_sensor_config_t sensors[USOS_MAX_SENSORS];
 } usos_adapter_config_t;
 
+#define USOS_OBS_FLAG_FROM_CACHE (1U << 0)
+
 /**
- * @brief Fixed-size observation event pushed non-blockingly to usos_obs_queue.
+ * @brief Fixed-size observation event (20 bytes packed) pushed non-blockingly to usos_obs_queue.
  */
 typedef struct {
     uint32_t timestamp_ms;
-    uint8_t component_id;
-    usos_obs_domain_t domain;
     int32_t status_code;
     uint32_t latency_us;
     float value;
-    bool from_cache;
+    uint8_t component_id;
+    uint8_t domain;                /**< usos_obs_domain_t */
+    uint8_t flags;                 /**< Bit 0: USOS_OBS_FLAG_FROM_CACHE */
+    uint8_t reserved;
 } usos_obs_event_t;
 
 /**
@@ -193,8 +216,8 @@ typedef struct {
 typedef struct {
     char name[16];
     uint8_t state;                 /**< 0=Running,1=Ready,2=Blocked,3=Suspended,4=Deleted */
+    uint16_t cpu_permille;         /**< 0..1000 (0.1% resolution); 0xFFFF if unavailable */
     uint32_t stack_hwm_bytes;
-    uint8_t cpu_percent;
 } usos_task_info_t;
 
 /**
@@ -203,8 +226,8 @@ typedef struct {
 typedef struct {
     uint32_t timestamp_ms;
     uint16_t task_count;
+    uint16_t total_cpu_permille;   /**< 0..1000 (0.1% resolution); 0xFFFF if unavailable */
     uint8_t tracked_count;
-    uint8_t total_cpu_percent;     /**< 0..100; 255 if runtime stats disabled */
     uint32_t free_heap_bytes;
     uint32_t min_free_heap_bytes;
     int32_t wdt_status;
@@ -215,12 +238,13 @@ typedef struct {
  * @brief USOS middleware self-resource overhead metrics (FR-005, Stage 3).
  */
 typedef struct {
-    uint32_t static_ram_bytes;
-    uint32_t obs_queue_depth;
-    uint32_t obs_queue_peak;
-    uint32_t obs_queue_drops;
+    uint32_t static_ram_bytes;     /**< Sum of USOS-owned .bss static structures */
+    uint32_t obs_queue_depth;      /**< Instantaneous queue depth at sample time */
+    uint32_t obs_queue_interval_peak; /**< Peak queue depth during last sample interval */
+    uint32_t obs_queue_peak;       /**< All-time peak queue depth since boot */
+    uint32_t obs_queue_drops;      /**< Total events dropped due to full queue */
     uint32_t usos_task_stack_hwm_bytes;
-    uint8_t usos_task_cpu_percent;
+    uint16_t usos_task_cpu_permille; /**< 0..1000 (0.1% resolution); 0xFFFF if unavailable */
     uint8_t active_sensor_count;
 } usos_resource_stats_t;
 
