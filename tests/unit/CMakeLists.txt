@@ -12,4 +12,11 @@ add_executable(test_stage2
 target_link_libraries(test_stage2 PRIVATE usos_core)
 target_compile_features(test_stage2 PRIVATE c_std_11)
 
+add_executable(test_stage3
+    test_stage3.c
+)
+target_link_libraries(test_stage3 PRIVATE usos_core)
+target_compile_features(test_stage3 PRIVATE c_std_11)
+
 add_test(NAME stage2_unit_tests COMMAND test_stage2)
+add_test(NAME stage3_unit_tests COMMAND test_stage3)
