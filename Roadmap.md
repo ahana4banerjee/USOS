@@ -65,7 +65,7 @@ flowchart LR
 - **Validation Criteria:** Existing baseline sensor application compiles and runs on Wokwi/ESP32 with zero application logic rewrites (`INT-001`, `INT-003`).
 - **Definition of Done:** Host unit tests for registry/adapter config pass; example firmware builds and boots cleanly.
 
-### Stage 3: Observation Engine `[MANDATORY — NEXT]`
+### Stage 3: Observation Engine `[COMPLETE]`
 - **Objective:** Capture sensor, hardware, FreeRTOS runtime, and USOS self-resource observations with minimal overhead.
 - **Tasks:**
   - Implement Observation Engine event queue and `usos_task`.
@@ -78,7 +78,7 @@ flowchart LR
 - **Validation Criteria:** All four observation streams produce accurate timestamped events under normal and fault-injected runs.
 - **Definition of Done:** Unit tests pass on host; Wokwi run prints accurate sensor + FreeRTOS runtime metrics.
 
-### Stage 4: Health and Fault Engine `[MANDATORY]`
+### Stage 4: Health and Fault Engine `[MANDATORY — NEXT]`
 - **Objective:** Convert raw observations into deterministic health states/scores and classified fault events.
 - **Tasks:**
   - Implement Health Assessment Engine (`HEALTHY`, `DEGRADED`, `FAULT`, `RECOVERY`, `0–100` score + factor breakdown, hysteresis).

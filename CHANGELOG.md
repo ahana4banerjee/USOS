@@ -6,6 +6,30 @@
 
 ---
 
+## [Phase 4-1 — Stage 3: Observation Engine] — 2026-11-26
+
+### What We Built
+- **Observation Engine (`include/usos_observation.h`, `src/observation/usos_observation.c`):** Central orchestrator running inside `usos_supervisor_task` that consumes `usos_obs_event_t` events from `usos_obs_queue` and runs a periodic observation tick (`CONFIG_USOS_OBS_PERIOD_MS`, default `1000 ms`).
+- **Four Specialized Monitors (`src/observation/`):**
+  - **Sensor Monitor (`usos_sensor_monitor.c`):** Tracks total/success/error/timeout/consecutive-error counts, rolling min/max/avg latency, `NaN` and out-of-range counts, stuck-value detection, rate-of-change (`|dx/dt|`), and missed expected samples.
+  - **Hardware Monitor (`usos_hw_monitor.c`):** Tracks per-bus (`GPIO`, `I2C`, `SPI`, `UART`, `ADC`) transactions, errors, NACK/timeouts, and bus availability.
+  - **Runtime Monitor (`usos_runtime_monitor.c`):** Periodically snapshots FreeRTOS task count, task states, CPU %, per-task stack high-water marks, free/min heap, and watchdog status.
+  - **USOS Resource Monitor (`usos_resource_monitor.c`):** Measures USOS's own overhead (`FR-005`)—static RAM bytes, `obs_queue` depth/peak/drops, `usos_task` stack high-water mark, and `usos_task` CPU %.
+- **PAL & Config Extensions:** Extended `usos_pal_rtos.h`, `platform/esp32_freertos/usos_pal_esp32.c`, and `platform/mock/usos_pal_mock.c`; added `examples/baseline_sensors/sdkconfig.defaults` enabling FreeRTOS trace facility and runtime stats.
+- **Stage 3 Host Unit Tests (`tests/unit/test_stage3.c`):** Added tests for sensor anomalies, bus error/recovery tracking, and runtime/resource monitoring.
+
+### Why We Made These Choices
+- **Why separate the 4 monitors in pure C11:** Keeping Sensor, Hardware, Runtime, and Resource monitors independent of FreeRTOS headers lets us test every counter, anomaly rule, and RAM calculation on a PC without hardware, while giving Stage 4 (Health & Fault Engine) clean read-only snapshots.
+- **Why measure USOS's own overhead (`usos_resource_monitor`):** The central research question of USOS is whether reliability middleware can stay lightweight on constrained MCUs. Tracking static RAM, queue peaks/drops, and `usos_task` stack/CPU from Stage 3 onward makes that trade-off directly measurable.
+- **Why `CONFIG_USOS_MAX_TRACKED_TASKS=24` with static `TaskStatus_t` buffer:** FreeRTOS `uxTaskGetSystemState()` returns `0` if the buffer is smaller than the total number of tasks (ESP32 SMP apps routinely run 10–18 system/Wi-Fi tasks). A static 24-entry buffer avoids `malloc` while ensuring snapshots succeed.
+
+### How It Works & Verification Results
+- **Event Flow:** Application wrapper → non-blocking `usos_pal_obs_queue_send()` (recording a drop in `usos_resource_monitor` if full) → `usos_supervisor_task` pops event → `usos_observation_process_event()` updates Sensor + Hardware monitors → periodic `usos_observation_tick()` samples Runtime + Resource monitors and logs `[USOS_OBS] ...`.
+- **Host Unit Tests:** Compiled with `-Wall -Wextra -Werror` and passed all Stage 2 and Stage 3 tests (`test_sensor_monitor_metrics_and_anomalies`, `test_hw_monitor_bus_errors_and_recovery`, `test_runtime_and_resource_monitors`).
+- **ESP-IDF Build:** `examples/baseline_sensors` built cleanly (`0x2c3a0` bytes, 83% app partition free) with `sdkconfig.defaults` active—ready to observe live `[USOS_OBS]` metrics in Wokwi.
+
+---
+
 ## [Phase 4-1 — Stage 2: Integration Layer] — 2026-11-26
 
 ### What We Built
