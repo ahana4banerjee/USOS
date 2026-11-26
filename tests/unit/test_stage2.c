@@ -8,6 +8,8 @@ extern void usos_mock_reset(void);
 extern void usos_mock_set_time_ms(uint32_t ms);
 extern uint32_t usos_mock_obs_count(void);
 
+uint32_t usos_startup_static_ram(void) { return 1U; }
+
 static int s_real_calls = 0;
 static int s_next_rc = 0;
 static float s_next_val = 25.0f;
@@ -111,7 +113,7 @@ static void test_opt_in_caching_and_init_fail_guard(void)
     assert(usos_pal_obs_queue_recv(&ev, 0)); /* t=100 */
     assert(usos_pal_obs_queue_recv(&ev, 0)); /* t=200 */
     assert(usos_pal_obs_queue_recv(&ev, 0)); /* cached event */
-    assert(ev.from_cache == true);
+    assert((ev.flags & USOS_OBS_FLAG_FROM_CACHE) != 0U);
     assert(ev.timestamp_ms == 200U);
 
     /* 4. After interval expires (200 + 1000 = 1200ms) -> hits real driver again */
