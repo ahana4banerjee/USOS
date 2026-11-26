@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = "build/conventional_baseline.bin"
+elf = "build/conventional_baseline.elf"
